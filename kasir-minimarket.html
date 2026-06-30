@@ -6,6 +6,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>KasirPOS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 :root{
@@ -25,6 +27,13 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .clock{text-align:right}
 .clock-time{font-size:18px;font-weight:700}
 .clock-date{font-size:10px;color:var(--muted)}
+.nav-tabs{display:flex;gap:5px;background:var(--card);border-radius:11px;padding:4px}
+.nav-tab{padding:7px 14px;border-radius:8px;border:none;background:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.nav-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* PAGES */
+.page{display:none;flex:1;overflow:hidden}
+.page.active{display:flex}
 
 /* LAYOUT */
 .body{display:flex;flex:1;overflow:hidden}
@@ -177,6 +186,73 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 #toast.ok{border-color:var(--green)}
 #toast.err{border-color:var(--red)}
+
+/* ── PRODUK PAGE ── */
+.produk-toolbar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--surface)}
+.search-in{flex:1;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .2s}
+.search-in:focus{border-color:var(--accent)}
+.btn-newprod{padding:10px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7C5CFC);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-newprod:active{opacity:.85}
+.btn-printall{padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-printall:active{border-color:var(--yellow);color:var(--yellow)}
+
+.produk-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.produk-list::-webkit-scrollbar{width:5px}
+.produk-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.prow{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:border-color .15s}
+.prow:hover{border-color:var(--accent)}
+.prow-emoji{font-size:30px;flex-shrink:0;width:42px;text-align:center}
+.prow-info{flex:1;min-width:0}
+.prow-name{font-size:14px;font-weight:700;margin-bottom:2px}
+.prow-meta{font-size:11px;color:var(--muted)}
+.prow-price{font-size:15px;font-weight:800;color:var(--accent);margin-top:3px}
+.prow-actions{display:flex;gap:6px;flex-shrink:0}
+.bicon{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.bicon:active{transform:scale(.9)}
+.bicon.code:active{background:var(--accent);border-color:var(--accent)}
+.bicon.edit:active{background:#7C5CFC;border-color:#7C5CFC}
+.bicon.del:active{background:var(--red);border-color:var(--red)}
+
+/* ── FORM MODAL (edit produk) ── */
+.frow{display:flex;flex-direction:column;gap:6px}
+.flabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.finput{padding:11px 14px;background:var(--card);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.finput:focus{border-color:var(--accent)}
+.emoji-pick{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:140px;overflow-y:auto}
+.emoji-pick::-webkit-scrollbar{width:3px}
+.epbtn{width:100%;aspect-ratio:1;border-radius:8px;border:2px solid var(--border);background:var(--card);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.epbtn:active{transform:scale(.9)}
+.epbtn.sel{border-color:var(--accent);background:rgba(79,142,247,.15)}
+
+/* ── CODE/BARCODE MODAL ── */
+.code-type-toggle{display:flex;gap:6px;background:var(--card);border-radius:11px;padding:4px}
+.ctt-btn{flex:1;padding:9px;border-radius:8px;border:none;background:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.ctt-btn.active{background:var(--surface);color:var(--text)}
+.code-prod-info{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:12px;padding:11px 13px}
+.cpi-emoji{font-size:32px}
+.cpi-name{font-size:13px;font-weight:700}
+.cpi-price{font-size:14px;font-weight:800;color:var(--accent);margin-top:2px}
+.code-canvas-wrap{display:flex;justify-content:center;align-items:center;background:#fff;border-radius:14px;padding:18px;min-height:140px}
+.code-text-display{text-align:center;font-size:16px;font-weight:800;letter-spacing:2px;font-family:monospace;color:var(--accent);background:var(--card);padding:8px 14px;border-radius:8px}
+.btn-print-code{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--yellow),#D97706);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:opacity .15s}
+.btn-print-code:active{opacity:.85}
+
+/* ── DELETE CONFIRM ── */
+.del-icon{font-size:44px;text-align:center}
+.del-msg{font-size:13px;text-align:center;color:var(--muted);line-height:1.6}
+.btn-del-ok{flex:2;padding:12px;border-radius:10px;background:var(--red);border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer}
+
+/* ── PRINT AREA ── */
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:flex!important;position:fixed;left:0;top:0;width:100%;flex-wrap:wrap;gap:6mm;padding:8mm;background:#fff}
+  .pcard{background:#fff;border:1px solid #ccc;border-radius:3mm;padding:5mm;display:flex;flex-direction:column;align-items:center;gap:3mm;width:55mm;text-align:center;break-inside:avoid}
+  .pcard-name{font-size:9pt;font-weight:700;color:#111;font-family:sans-serif}
+  .pcard-code{font-size:7pt;color:#555;font-family:monospace;letter-spacing:1px}
+  .pcard-price{font-size:10pt;font-weight:800;color:#111;font-family:sans-serif}
+}
 </style>
 </head>
 <body>
@@ -189,12 +265,19 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
       <div class="logo-sub">Minimarket</div>
     </div>
   </div>
-  <div class="clock">
-    <div class="clock-time" id="clkTime">--:--</div>
-    <div class="clock-date" id="clkDate">–</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tabKasir" onclick="switchPage('kasir')">🏪 Kasir</button>
+      <button class="nav-tab" id="tabProduk" onclick="switchPage('produk')">📦 Produk</button>
+    </div>
+    <div class="clock">
+      <div class="clock-time" id="clkTime">--:--</div>
+      <div class="clock-date" id="clkDate">–</div>
+    </div>
   </div>
 </header>
 
+<div class="page active" id="page-kasir">
 <div class="body">
 
   <!-- LEFT -->
@@ -203,7 +286,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <!-- CAMERA -->
     <div class="cam-box">
       <div class="cam-header">
-        <span class="cam-title">📷 Scan QR Produk</span>
+        <span class="cam-title">📷 Scan Barcode / QR Produk</span>
         <span class="cam-st"><div class="dot" id="dot"></div><span id="stTxt">Kamera mati</span></span>
       </div>
       <div class="vid-wrap">
@@ -270,6 +353,88 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     </div>
   </div>
 </div>
+</div><!-- /page-kasir -->
+
+<!-- ── PAGE: PRODUK ── -->
+<div class="page" id="page-produk">
+  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div class="produk-toolbar">
+      <input class="search-in" id="searchIn" type="text" placeholder="🔍 Cari produk atau kode..." oninput="renderProdukList()">
+      <button class="btn-printall" onclick="openPrintAll()">🖨️ Print Semua</button>
+      <button class="btn-newprod" onclick="openEdit(null)">＋ Produk Baru</button>
+    </div>
+    <div class="produk-list" id="produkList"></div>
+  </div>
+</div>
+
+<!-- ── MODAL: EDIT PRODUK ── -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-title" id="editTitle">✏️ Edit Produk</div>
+    <div class="frow">
+      <span class="flabel">Nama Produk</span>
+      <input class="finput" id="fName" type="text" placeholder="Nama produk...">
+    </div>
+    <div class="frow">
+      <span class="flabel">Kode Barcode/QR (unik)</span>
+      <input class="finput" id="fCode" type="text" placeholder="contoh: QR013" style="font-family:monospace;letter-spacing:1px">
+    </div>
+    <div class="frow">
+      <span class="flabel">Harga (Rp)</span>
+      <input class="finput" id="fPrice" type="number" placeholder="0" min="0">
+    </div>
+    <div class="frow">
+      <span class="flabel">Stok</span>
+      <input class="finput" id="fStock" type="number" placeholder="0" min="0">
+    </div>
+    <div class="frow">
+      <span class="flabel">Ikon Produk</span>
+      <div class="emoji-pick" id="emojiPick"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEdit()">Batal</button>
+      <button class="btn-ok" onclick="saveProduk()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: BARCODE/QR CODE ── -->
+<div class="overlay" id="codeOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">🔲 Kode Produk</div>
+    <div class="code-type-toggle">
+      <button class="ctt-btn active" id="cttBarcode" onclick="setCodeType('barcode')">▌▌║ Barcode</button>
+      <button class="ctt-btn" id="cttQR" onclick="setCodeType('qr')">⬛ QR Code</button>
+    </div>
+    <div class="code-prod-info">
+      <div class="cpi-emoji" id="cpiEmoji">🛍</div>
+      <div>
+        <div class="cpi-name" id="cpiName">–</div>
+        <div class="cpi-price" id="cpiPrice">Rp 0</div>
+      </div>
+    </div>
+    <div class="code-canvas-wrap" id="codeCanvasWrap"></div>
+    <div class="code-text-display" id="codeTextDisplay">–</div>
+    <button class="btn-print-code" onclick="printSingleCode()">🖨️ Print Kode Ini</button>
+    <button class="btn-cancel" onclick="closeCode()">Tutup</button>
+  </div>
+</div>
+
+<!-- ── MODAL: DELETE CONFIRM ── -->
+<div class="overlay" id="delOverlay">
+  <div class="modal" style="max-width:320px">
+    <div class="del-icon">🗑️</div>
+    <div class="modal-title">Hapus Produk?</div>
+    <div class="del-msg" id="delMsg">–</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeDel()">Batal</button>
+      <button class="btn-del-ok" onclick="confirmDel()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA (hidden) -->
+<div id="printArea"></div>
 
 <!-- PAY MODAL -->
 <div class="overlay" id="payOverlay">
@@ -308,8 +473,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 <div id="toast"></div>
 
 <script>
-// ── PRODUK DATABASE ──
-const PRODUK = {
+// ── PRODUK DATABASE (localStorage) ──
+const DEFAULT_PRODUK = {
   'QR001':{ n:'Aqua Botol 600ml',   p:5000,  e:'💧', s:50 },
   'QR002':{ n:'Indomie Goreng',      p:4000,  e:'🍜', s:120 },
   'QR003':{ n:'Teh Botol Sosro',     p:6000,  e:'🧋', s:60 },
@@ -323,6 +488,16 @@ const PRODUK = {
   'QR011':{ n:'Minyak Goreng 1L',    p:32000, e:'🫙', s:25 },
   'QR012':{ n:'Gula Pasir 1kg',      p:15000, e:'🍬', s:35 },
 };
+function loadProduk(){
+  try{
+    const saved=localStorage.getItem('kasir_produk');
+    return saved?JSON.parse(saved):JSON.parse(JSON.stringify(DEFAULT_PRODUK));
+  }catch(e){return JSON.parse(JSON.stringify(DEFAULT_PRODUK));}
+}
+function saveProdukDB(){localStorage.setItem('kasir_produk',JSON.stringify(PRODUK));}
+let PRODUK = loadProduk();
+
+const EMOJIS=['🛍️','🍜','💧','🧋','🍞','🍫','🍟','🥤','🥛','🍪','🧼','🫙','🍬','🧴','🥚','🍳','☕','🍵','🍦','🍰','🥫','🍖','🍗','🧂','🥬','🍎','🍊','🍋','🫐','🥕','🧅','🧄','🌽','🥑','🍅','🛒','💊','🩺','✏️','📱','💡','🔋','🧹','🪣','🧺','🥨','🍩','🧁','🍯'];
 
 // ── AUDIO ──
 let actx;
@@ -616,7 +791,211 @@ function closeSuc(){
   clearCart();
 }
 
-// ── KEYBOARD WEDGE (scanner USB/BT) ──
+// ── PAGE SWITCH ──
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById(name==='kasir'?'tabKasir':'tabProduk').classList.add('active');
+  if(name==='produk')renderProdukList();
+  if(name==='kasir')renderKat();
+}
+
+// ── PRODUK LIST (halaman Produk) ──
+function renderProdukList(){
+  const q=(document.getElementById('searchIn').value||'').toLowerCase();
+  const list=document.getElementById('produkList');
+  list.innerHTML='';
+  const entries=Object.entries(PRODUK).filter(([code,p])=>
+    p.n.toLowerCase().includes(q)||code.toLowerCase().includes(q)
+  );
+  if(entries.length===0){
+    list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;font-size:13px">Produk tidak ditemukan</div>';
+    return;
+  }
+  entries.forEach(([code,p])=>{
+    const row=document.createElement('div');
+    row.className='prow';
+    row.innerHTML=`
+      <div class="prow-emoji">${p.e}</div>
+      <div class="prow-info">
+        <div class="prow-name">${p.n}</div>
+        <div class="prow-meta">Kode: <strong style="font-family:monospace;color:var(--accent)">${code}</strong> · Stok: ${p.s} pcs</div>
+        <div class="prow-price">${rp(p.p)}</div>
+      </div>
+      <div class="prow-actions">
+        <button class="bicon code" title="Lihat Barcode/QR" onclick="openCode('${code}')">🔲</button>
+        <button class="bicon edit" title="Edit" onclick="openEdit('${code}')">✏️</button>
+        <button class="bicon del" title="Hapus" onclick="openDel('${code}')">🗑️</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+// ── EDIT PRODUK MODAL ──
+let editingCode=null,selEmoji='🛍️';
+function openEdit(code){
+  editingCode=code;
+  const isNew=!code;
+  document.getElementById('editTitle').textContent=isNew?'➕ Produk Baru':'✏️ Edit Produk';
+  if(isNew){
+    document.getElementById('fName').value='';
+    document.getElementById('fCode').value='QR'+String(Date.now()).slice(-4);
+    document.getElementById('fPrice').value='';
+    document.getElementById('fStock').value='0';
+    selEmoji='🛍️';
+  }else{
+    const p=PRODUK[code];
+    document.getElementById('fName').value=p.n;
+    document.getElementById('fCode').value=code;
+    document.getElementById('fPrice').value=p.p;
+    document.getElementById('fStock').value=p.s;
+    selEmoji=p.e;
+  }
+  const pick=document.getElementById('emojiPick');
+  pick.innerHTML='';
+  EMOJIS.forEach(em=>{
+    const b=document.createElement('button');
+    b.className='epbtn'+(em===selEmoji?' sel':'');
+    b.textContent=em;
+    b.onclick=()=>{selEmoji=em;pick.querySelectorAll('.epbtn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');};
+    pick.appendChild(b);
+  });
+  document.getElementById('editOverlay').classList.add('show');
+}
+function closeEdit(){document.getElementById('editOverlay').classList.remove('show');}
+function saveProduk(){
+  const n=document.getElementById('fName').value.trim();
+  const code=document.getElementById('fCode').value.trim().toUpperCase();
+  const p=parseInt(document.getElementById('fPrice').value)||0;
+  const s=parseInt(document.getElementById('fStock').value)||0;
+  if(!n||!code){toast('⚠️ Nama dan kode wajib diisi','err');return;}
+  if(code!==editingCode&&PRODUK[code]){toast('⚠️ Kode '+code+' sudah dipakai','err');return;}
+  if(editingCode&&editingCode!==code)delete PRODUK[editingCode];
+  PRODUK[code]={n,p,e:selEmoji,s};
+  saveProdukDB();
+  closeEdit();renderProdukList();renderKat();
+  toast('✅ Produk disimpan: '+n,'ok');
+}
+
+// ── DELETE PRODUK ──
+let deletingCode=null;
+function openDel(code){
+  deletingCode=code;
+  document.getElementById('delMsg').textContent=`Hapus "${PRODUK[code].n}" (${code})? Tidak bisa dibatalkan.`;
+  document.getElementById('delOverlay').classList.add('show');
+}
+function closeDel(){document.getElementById('delOverlay').classList.remove('show');}
+function confirmDel(){
+  if(!deletingCode)return;
+  const n=PRODUK[deletingCode].n;
+  delete PRODUK[deletingCode];
+  saveProdukDB();closeDel();renderProdukList();renderKat();
+  toast('🗑 '+n+' dihapus');
+}
+
+// ── BARCODE / QR CODE MODAL ──
+let currentCodeType='barcode',currentCode=null;
+function openCode(code){
+  currentCode=code;
+  const p=PRODUK[code];
+  document.getElementById('cpiEmoji').textContent=p.e;
+  document.getElementById('cpiName').textContent=p.n;
+  document.getElementById('cpiPrice').textContent=rp(p.p);
+  document.getElementById('codeTextDisplay').textContent=code;
+  currentCodeType='barcode';
+  document.getElementById('cttBarcode').classList.add('active');
+  document.getElementById('cttQR').classList.remove('active');
+  renderCodeCanvas();
+  document.getElementById('codeOverlay').classList.add('show');
+}
+function closeCode(){
+  document.getElementById('codeOverlay').classList.remove('show');
+  document.getElementById('codeCanvasWrap').innerHTML='';
+}
+function setCodeType(type){
+  currentCodeType=type;
+  document.getElementById('cttBarcode').classList.toggle('active',type==='barcode');
+  document.getElementById('cttQR').classList.toggle('active',type==='qr');
+  renderCodeCanvas();
+}
+function renderCodeCanvas(){
+  const wrap=document.getElementById('codeCanvasWrap');
+  wrap.innerHTML='';
+  if(currentCodeType==='barcode'){
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.id='barcodeSvg';
+    wrap.appendChild(svg);
+    try{
+      JsBarcode(svg,currentCode,{format:'CODE128',width:2.4,height:80,displayValue:false,margin:8});
+    }catch(e){
+      wrap.innerHTML='<div style="font-size:12px;color:red">Kode tidak valid untuk barcode (gunakan huruf/angka)</div>';
+    }
+  }else{
+    const div=document.createElement('div');
+    wrap.appendChild(div);
+    try{
+      new QRCode(div,{text:currentCode,width:160,height:160,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+    }catch(e){
+      wrap.innerHTML='<div style="font-size:12px;color:red">QR gagal dibuat</div>';
+    }
+  }
+}
+
+// ── PRINT SINGLE CODE ──
+function printSingleCode(){
+  const p=PRODUK[currentCode];
+  const printArea=document.getElementById('printArea');
+  const codeHTML=getCodeImgHTML(currentCode);
+  let cards='';
+  for(let i=0;i<6;i++){
+    cards+=`<div class="pcard">
+      <div style="font-size:20pt">${p.e}</div>
+      ${codeHTML}
+      <div class="pcard-name">${p.n}</div>
+      <div class="pcard-code">${currentCode}</div>
+      <div class="pcard-price">${rp(p.p)}</div>
+    </div>`;
+  }
+  printArea.innerHTML=cards;
+  setTimeout(()=>{window.print();},250);
+}
+
+// ── PRINT ALL PRODUCTS ──
+function openPrintAll(){
+  if(Object.keys(PRODUK).length===0){toast('⚠️ Belum ada produk','err');return;}
+  const printArea=document.getElementById('printArea');
+  let cards='';
+  Object.entries(PRODUK).forEach(([code,p])=>{
+    const codeHTML=getCodeImgHTML(code);
+    cards+=`<div class="pcard">
+      <div style="font-size:20pt">${p.e}</div>
+      ${codeHTML}
+      <div class="pcard-name">${p.n}</div>
+      <div class="pcard-code">${code}</div>
+      <div class="pcard-price">${rp(p.p)}</div>
+    </div>`;
+  });
+  printArea.innerHTML=cards;
+  setTimeout(()=>{window.print();},300);
+}
+
+// Generate barcode as inline SVG string for printing
+function getCodeImgHTML(code){
+  const tempDiv=document.createElement('div');
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  tempDiv.appendChild(svg);
+  try{
+    JsBarcode(svg,code,{format:'CODE128',width:1.8,height:50,displayValue:false,margin:4});
+    svg.style.width='40mm';
+    svg.style.height='auto';
+    return svg.outerHTML;
+  }catch(e){
+    return '<div style="font-size:8pt;color:red">kode invalid</div>';
+  }
+}
+
+
 let kbuf='',ktimer;
 document.addEventListener('keydown',e=>{
   if(document.querySelector('.overlay.show'))return;
