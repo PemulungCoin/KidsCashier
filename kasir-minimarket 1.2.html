@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<title>KasirPOS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+:root{
+  --bg:#0D0F14;--surface:#161A23;--card:#1E2330;--border:#2A3045;
+  --accent:#4F8EF7;--green:#22C55E;--red:#EF4444;--yellow:#F59E0B;
+  --text:#E8EBF3;--muted:#7B83A0;--r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:8px}
+.logo{display:flex;align-items:center;gap:9px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4F8EF7,#7C5CFC);display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-size:16px;font-weight:800}
+.logo-sub{font-size:10px;color:var(--muted)}
+.clock{text-align:right}
+.clock-time{font-size:18px;font-weight:700}
+.clock-date{font-size:10px;color:var(--muted)}
+.nav-tabs{display:flex;gap:5px;background:var(--card);border-radius:11px;padding:4px}
+.nav-tab{padding:7px 14px;border-radius:8px;border:none;background:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.nav-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* PAGES */
+.page{display:none;flex:1;overflow:hidden}
+.page.active{display:flex}
+.body{display:flex;flex:1;overflow:hidden}
+.left{flex:1;display:flex;flex-direction:column;gap:10px;padding:12px;overflow:hidden}
+
+/* CAMERA */
+.cam-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;flex-shrink:0}
+.cam-header{padding:10px 12px 6px;display:flex;align-items:center;justify-content:space-between}
+.cam-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+.cam-st{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+.vid-wrap{position:relative;background:#000;width:100%;aspect-ratio:16/9;max-height:220px}
+#video{width:100%;height:100%;object-fit:cover;display:block}
+#canvas{display:none}
+
+.sf{position:absolute;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none}
+.sf.show{display:flex}
+.sf-box{width:120px;height:120px;position:relative}
+.sf-box::before,.sf-box::after{content:'';position:absolute;width:22px;height:22px;border-color:var(--accent);border-style:solid}
+.sf-box::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:5px 0 0 0}
+.sf-box::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 5px 0 0}
+.sf-box .bl,.sf-box .br{position:absolute;width:22px;height:22px;border-color:var(--accent);border-style:solid}
+.sf-box .bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 5px}
+.sf-box .br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 5px 0}
+.sf-line{position:absolute;left:8px;right:8px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:50%;animation:sweep 2s ease-in-out infinite;border-radius:2px}
+@keyframes sweep{0%{top:6px;opacity:.8}50%{top:110px;opacity:1}100%{top:6px;opacity:.8}}
+
+.vid-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#0a0c14}
+.vid-placeholder span{font-size:40px}
+.vid-placeholder p{font-size:12px;color:var(--muted);text-align:center;max-width:200px;line-height:1.5}
+
+.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:10px 13px;font-size:12px;line-height:1.6;color:var(--yellow);display:none;flex-shrink:0}
+.warn.show{display:block}
+.warn code{background:rgba(255,255,255,.1);border-radius:4px;padding:1px 6px;font-size:11px;color:#fff}
+
+.btn-cam{width:100%;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#4F8EF7,#7C5CFC);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity .15s,transform .1s;margin-top:8px}
+.btn-cam:active{opacity:.85;transform:scale(.97)}
+.btn-cam.stop{background:var(--red)}
+
+/* PRODUCT FOUND */
+.prod-found{background:var(--surface);border:2px solid var(--green);border-radius:var(--r);padding:12px;display:none;align-items:center;gap:12px;flex-shrink:0;animation:slideDown .25s ease}
+.prod-found.show{display:flex}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.pf-emoji{font-size:44px;flex-shrink:0;width:60px;height:60px;background:var(--card);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.pf-info{flex:1;min-width:0}
+.pf-name{font-size:15px;font-weight:800;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-code{font-size:10px;color:var(--muted);font-family:monospace;margin-bottom:4px}
+.pf-price{font-size:20px;font-weight:800;color:var(--accent)}
+.pf-stock{font-size:11px;color:var(--muted)}
+.btn-add-prod{padding:9px 14px;border:none;border-radius:10px;background:var(--green);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity .15s,transform .1s}
+.btn-add-prod:active{opacity:.85;transform:scale(.97)}
+
+/* KATALOG */
+.katalog-wrap{flex:1;display:flex;flex-direction:column;gap:7px;overflow:hidden;min-height:0}
+.kat-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;flex-shrink:0}
+.kat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px;overflow-y:auto;flex:1}
+.kat-grid::-webkit-scrollbar{width:4px}
+.kat-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.kat-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;transition:border-color .15s,transform .1s}
+.kat-item:active{border-color:var(--accent);transform:scale(.95)}
+.kat-emoji{font-size:26px}
+.kat-name{font-size:10px;font-weight:700;line-height:1.3;color:var(--text)}
+.kat-price{font-size:10px;font-weight:700;color:var(--accent)}
+
+/* RIGHT - CART */
+.right{width:320px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+.cart-header{padding:12px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cart-title{font-size:14px;font-weight:800}
+.cart-badge{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;min-width:22px;text-align:center}
+.btn-clear{font-size:11px;color:var(--red);font-weight:700;background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:6px}
+.cart-items{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.cart-items::-webkit-scrollbar{width:4px}
+.cart-items::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;flex:1;color:var(--muted);text-align:center;padding:30px}
+.cart-empty span{font-size:38px}
+.cart-empty p{font-size:12px;line-height:1.5}
+.cart-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 10px;display:flex;align-items:center;gap:8px;animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:translateX(0)}}
+.cr-emoji{font-size:20px;flex-shrink:0;width:26px;text-align:center}
+.cr-info{flex:1;min-width:0}
+.cr-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-unit{font-size:10px;color:var(--muted)}
+.cr-sub{font-size:12px;font-weight:800;color:var(--accent)}
+.cr-qty{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.qb{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.qb:active{background:var(--accent);border-color:var(--accent)}
+.qv{font-size:13px;font-weight:700;min-width:18px;text-align:center}
+
+/* SUMMARY */
+.summary{border-top:1px solid var(--border);padding:10px 14px;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.sum-row{display:flex;justify-content:space-between;font-size:12px}
+.sum-row .l{color:var(--muted)}
+.sum-row .v{font-weight:700}
+.sum-row.big{font-size:17px;font-weight:800}
+.divider{height:1px;background:var(--border)}
+.btn-pay{width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--green),#16A34A);color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity .15s,transform .1s}
+.btn-pay:active{opacity:.85;transform:scale(.98)}
+.btn-pay:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(5px);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;animation:popIn .25s cubic-bezier(.34,1.56,.64,1);max-height:92dvh;overflow-y:auto}
+.modal::-webkit-scrollbar{width:4px}
+.modal::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+@keyframes popIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-size:17px;font-weight:800;text-align:center}
+
+/* PAY MODAL */
+.pay-total{font-size:34px;font-weight:800;color:var(--accent);text-align:center;letter-spacing:-1px}
+.pay-lbl{font-size:11px;color:var(--muted);text-align:center;margin-top:-8px}
+.cash-wrap label{font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px}
+.cash-in{width:100%;padding:12px 14px;background:var(--card);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:18px;font-weight:700;outline:none;transition:border-color .2s}
+.cash-in:focus{border-color:var(--accent)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.np{padding:13px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:17px;font-weight:700;cursor:pointer;transition:background .1s,transform .1s}
+.np:active{background:var(--accent);transform:scale(.94)}
+.np.del{color:var(--red)}
+.change-box{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:10px;padding:11px 14px}
+.change-box .cl{font-size:12px;color:var(--muted)}
+.change-box .cv{font-size:18px;font-weight:800;color:var(--green)}
+.modal-btns{display:flex;gap:8px}
+.btn-cancel{flex:1;padding:12px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.btn-ok{flex:2;padding:12px;border-radius:10px;background:linear-gradient(135deg,var(--green),#16A34A);border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:opacity .15s}
+.btn-ok:active{opacity:.85}
+.btn-ok:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+
+/* SUCCESS */
+.suc-icon{width:68px;height:68px;border-radius:50%;background:rgba(34,197,94,.12);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto;animation:bounce .4s cubic-bezier(.34,1.56,.64,1) .1s both}
+@keyframes bounce{from{transform:scale(0)}to{transform:scale(1)}}
+.suc-title{font-size:20px;font-weight:800;color:var(--green);text-align:center}
+.suc-change{font-size:28px;font-weight:800;text-align:center}
+.suc-sub{font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+.btn-new{width:100%;padding:13px;border-radius:10px;background:linear-gradient(135deg,#4F8EF7,#7C5CFC);border:none;color:#fff;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.btn-new:active{opacity:.85}
+
+/* TOAST */
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--card);border:1px solid var(--border);border-radius:40px;padding:9px 18px;font-size:12px;font-weight:600;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;pointer-events:none;z-index:999;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.ok{border-color:var(--green)}
+#toast.err{border-color:var(--red)}
+
+/* PRODUK PAGE */
+.produk-toolbar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--surface);flex-wrap:wrap}
+.search-in{flex:1;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .2s;min-width:120px}
+.search-in:focus{border-color:var(--accent)}
+.btn-newprod{padding:10px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7C5CFC);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-newprod:active{opacity:.85}
+.btn-printall{padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-printall:active{border-color:var(--yellow);color:var(--yellow)}
+
+.produk-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.produk-list::-webkit-scrollbar{width:5px}
+.produk-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.prow{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:border-color .15s}
+.prow:hover{border-color:var(--accent)}
+.prow-emoji{font-size:30px;flex-shrink:0;width:42px;text-align:center}
+.prow-info{flex:1;min-width:0}
+.prow-name{font-size:14px;font-weight:700;margin-bottom:2px}
+.prow-meta{font-size:11px;color:var(--muted)}
+.prow-price{font-size:15px;font-weight:800;color:var(--accent);margin-top:3px}
+.prow-actions{display:flex;gap:6px;flex-shrink:0}
+.bicon{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.bicon:active{transform:scale(.9)}
+
+/* FORM MODAL */
+.frow{display:flex;flex-direction:column;gap:6px}
+.flabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.finput{padding:11px 14px;background:var(--card);border:2px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.finput:focus{border-color:var(--accent)}
+.emoji-pick{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:140px;overflow-y:auto}
+.emoji-pick::-webkit-scrollbar{width:3px}
+.epbtn{width:100%;aspect-ratio:1;border-radius:8px;border:2px solid var(--border);background:var(--card);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.epbtn:active{transform:scale(.9)}
+.epbtn.sel{border-color:var(--accent);background:rgba(79,142,247,.15)}
+
+/* CODE MODAL */
+.code-type-toggle{display:flex;gap:6px;background:var(--card);border-radius:11px;padding:4px}
+.ctt-btn{flex:1;padding:9px;border-radius:8px;border:none;background:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.ctt-btn.active{background:var(--surface);color:var(--text)}
+.code-prod-info{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:12px;padding:11px 13px}
+.cpi-emoji{font-size:32px}
+.cpi-name{font-size:13px;font-weight:700}
+.cpi-price{font-size:14px;font-weight:800;color:var(--accent);margin-top:2px}
+.code-canvas-wrap{display:flex;justify-content:center;align-items:center;background:#fff;border-radius:14px;padding:18px;min-height:140px}
+.code-text-display{text-align:center;font-size:16px;font-weight:800;letter-spacing:2px;font-family:monospace;color:var(--accent);background:var(--card);padding:8px 14px;border-radius:8px}
+.btn-print-code{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--yellow),#D97706);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:opacity .15s}
+.btn-print-code:active{opacity:.85}
+
+/* DELETE CONFIRM */
+.del-icon{font-size:44px;text-align:center}
+.del-msg{font-size:13px;text-align:center;color:var(--muted);line-height:1.6}
+.btn-del-ok{flex:2;padding:12px;border-radius:10px;background:var(--red);border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer}
+
+/* SCAN DEBUG */
+.scan-debug{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:10px;color:var(--muted);font-family:monospace;margin-top:4px;display:none;flex-shrink:0}
+.scan-debug.show{display:block}
+.scan-debug b{color:var(--accent)}
+
+/* ====== PRINT MULTI-HALAMAN ====== */
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  body{
+    visibility:visible;
+    background:#fff!important;
+    overflow:visible!important;
+    height:auto!important;
+    display:block!important;
+  }
+  #printArea,#printArea *{visibility:visible}
+  #printArea{
+    display:flex!important;
+    position:static!important;
+    left:auto!important;
+    top:auto!important;
+    width:100%!important;
+    flex-wrap:wrap;
+    gap:6mm;
+    padding:8mm;
+    background:#fff;
+    page-break-inside:auto;
+  }
+  .pcard{
+    background:#fff;
+    border:1px solid #ccc;
+    border-radius:3mm;
+    padding:5mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3mm;
+    width:55mm;
+    text-align:center;
+    break-inside:auto;
+    page-break-inside:auto;
+    page-break-before:auto;
+    page-break-after:auto;
+  }
+  .pcard-name{font-size:9pt;font-weight:700;color:#111;font-family:sans-serif}
+  .pcard-code{font-size:7pt;color:#555;font-family:monospace;letter-spacing:1px}
+  .pcard-price{font-size:10pt;font-weight:800;color:#111;font-family:sans-serif}
+
+  header,.page,.overlay,#toast{
+    display:none!important;
+    visibility:hidden!important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">💵</div>
+    <div>
+      <div class="logo-text">KasirPOS</div>
+      <div class="logo-sub">Minimarket</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tabKasir" onclick="switchPage('kasir')">🏪 Kasir</button>
+      <button class="nav-tab" id="tabProduk" onclick="switchPage('produk')">📦 Produk</button>
+    </div>
+    <div class="clock">
+      <div class="clock-time" id="clkTime">--:--</div>
+      <div class="clock-date" id="clkDate">-</div>
+    </div>
+  </div>
+</header>
+
+<!-- PAGE: KASIR -->
+<div class="page active" id="page-kasir">
+<div class="body">
+  <div class="left">
+    <div class="cam-box">
+      <div class="cam-header">
+        <span class="cam-title">📷 Scan Barcode / QR Produk</span>
+        <span class="cam-st"><div class="dot" id="dot"></div><span id="stTxt">Kamera mati</span></span>
+      </div>
+      <div class="vid-wrap">
+        <video id="video" playsinline autoplay muted webkit-playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div class="sf" id="sf">
+          <div class="sf-box"><div class="bl"></div><div class="br"></div><div class="sf-line"></div></div>
+        </div>
+        <div class="vid-placeholder" id="vph">
+          <span>📷</span>
+          <p>Tap tombol di bawah lalu arahkan kamera ke QR Code produk</p>
+        </div>
+      </div>
+      <div style="padding:8px 10px 10px">
+        <div class="warn" id="warn"></div>
+        <button class="btn-cam" id="btnCam" onclick="toggleCam()">📷 Aktifkan Kamera</button>
+        <div class="scan-debug" id="scanDebug"></div>
+      </div>
+    </div>
+    <div class="prod-found" id="prodFound">
+      <div class="pf-emoji" id="pfEmoji">✅</div>
+      <div class="pf-info">
+        <div class="pf-name" id="pfName">-</div>
+        <div class="pf-code" id="pfCode">-</div>
+        <div class="pf-price" id="pfPrice">Rp 0</div>
+        <div class="pf-stock" id="pfStock">-</div>
+      </div>
+      <button class="btn-add-prod" onclick="addLastScan()">+ Tambah</button>
+    </div>
+    <div class="katalog-wrap">
+      <div class="kat-title">👆 Tap produk untuk tambah ke keranjang</div>
+      <div class="kat-grid" id="katGrid"></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="cart-header">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span class="cart-title">🛒 Keranjang</span>
+        <span class="cart-badge" id="badge">0</span>
+      </div>
+      <button class="btn-clear" onclick="clearCart()">🗑️ Kosongkan</button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty" id="cartEmpty">
+        <span>🛒</span>
+        <p>Belum ada produk<br>Scan QR atau tap katalog</p>
+      </div>
+    </div>
+    <div class="summary">
+      <div class="sum-row"><span class="l">Subtotal</span><span class="v" id="sub">Rp 0</span></div>
+      <div class="sum-row"><span class="l">PPN 11%</span><span class="v" id="tax">Rp 0</span></div>
+      <div class="divider"></div>
+      <div class="sum-row big"><span class="l" style="color:var(--text)">TOTAL</span><span class="v" id="tot" style="color:var(--accent)">Rp 0</span></div>
+      <button class="btn-pay" id="btnPay" onclick="openPay()" disabled>💳 Bayar</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE: PRODUK -->
+<div class="page" id="page-produk">
+  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div class="produk-toolbar">
+      <input class="search-in" id="searchIn" type="text" placeholder="🔍 Cari produk atau kode..." oninput="renderProdukList()">
+      <button class="btn-printall" onclick="openPrintAll()">🖨️ Print Semua</button>
+      <button class="btn-newprod" onclick="openEdit(null)">➕ Produk Baru</button>
+    </div>
+    <div class="produk-list" id="produkList"></div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT PRODUK -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-title" id="editTitle">✏️ Edit Produk</div>
+    <div class="frow"><span class="flabel">Nama Produk</span><input class="finput" id="fName" type="text" placeholder="Nama produk..."></div>
+    <div class="frow"><span class="flabel">Kode Barcode/QR (unik)</span><input class="finput" id="fCode" type="text" placeholder="contoh: QR013" style="font-family:monospace;letter-spacing:1px"></div>
+    <div class="frow"><span class="flabel">Harga (Rp)</span><input class="finput" id="fPrice" type="number" placeholder="0" min="0"></div>
+    <div class="frow"><span class="flabel">Stok</span><input class="finput" id="fStock" type="number" placeholder="0" min="0"></div>
+    <div class="frow"><span class="flabel">Ikon Produk</span><div class="emoji-pick" id="emojiPick"></div></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEdit()">Batal</button>
+      <button class="btn-ok" onclick="saveProduk()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BARCODE/QR CODE -->
+<div class="overlay" id="codeOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">🏷️ Kode Produk</div>
+    <div class="code-type-toggle">
+      <button class="ctt-btn active" id="cttBarcode" onclick="setCodeType('barcode')">📊 Barcode</button>
+      <button class="ctt-btn" id="cttQR" onclick="setCodeType('qr')">📱 QR Code</button>
+    </div>
+    <div class="code-prod-info">
+      <div class="cpi-emoji" id="cpiEmoji">📦</div>
+      <div><div class="cpi-name" id="cpiName">-</div><div class="cpi-price" id="cpiPrice">Rp 0</div></div>
+    </div>
+    <div class="code-canvas-wrap" id="codeCanvasWrap"></div>
+    <div class="code-text-display" id="codeTextDisplay">-</div>
+    <button class="btn-print-code" onclick="printSingleCode()">🖨️ Print Kode Ini</button>
+    <button class="btn-cancel" onclick="closeCode()">Tutup</button>
+  </div>
+</div>
+
+<!-- MODAL: DELETE CONFIRM -->
+<div class="overlay" id="delOverlay">
+  <div class="modal" style="max-width:320px">
+    <div class="del-icon">⚠️</div>
+    <div class="modal-title">Hapus Produk?</div>
+    <div class="del-msg" id="delMsg">-</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeDel()">Batal</button>
+      <button class="btn-del-ok" onclick="confirmDel()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="printArea"></div>
+
+<!-- PAY MODAL -->
+<div class="overlay" id="payOverlay">
+  <div class="modal">
+    <div class="modal-title">💰 Pembayaran</div>
+    <div class="pay-total" id="payTotal">Rp 0</div>
+    <div class="pay-lbl">Total yang harus dibayar</div>
+    <div class="cash-wrap"><label>Uang diterima</label><input class="cash-in" id="cashIn" type="text" placeholder="Rp 0" readonly></div>
+    <div class="numpad" id="numpad"></div>
+    <div class="change-box"><span class="cl">💵 Kembalian</span><span class="cv" id="kembalian">Rp 0</span></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closePay()">Batal</button>
+      <button class="btn-ok" id="btnOk" onclick="confirmPay()" disabled>✅ Konfirmasi</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="overlay" id="sucOverlay">
+  <div class="modal" style="max-width:320px">
+    <div class="suc-icon">✅</div>
+    <div class="suc-title">Transaksi Berhasil!</div>
+    <div class="suc-sub">Kembalian</div>
+    <div class="suc-change" id="sucChange">Rp 0</div>
+    <div class="suc-sub" id="sucInfo"></div>
+    <button class="btn-new" onclick="closeSuc()">🔄 Transaksi Baru</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// PRODUK DATABASE (localStorage)
+// ============================================================
+const DEFAULT_PRODUK = {
+  'QR001':{n:'Aqua Botol 600ml',p:5000,e:'💧',s:50},
+  'QR002':{n:'Indomie Goreng',p:4000,e:'🍜',s:120},
+  'QR003':{n:'Teh Botol Sosro',p:6000,e:'🍵',s:60},
+  'QR004':{n:'Roti Tawar',p:18000,e:'🍞',s:30},
+  'QR005':{n:'Beng-Beng Coklat',p:5500,e:'🍫',s:80},
+  'QR006':{n:'Cheetos 65g',p:9000,e:'🧀',s:45},
+  'QR007':{n:'Sprite 250ml',p:7000,e:'🥤',s:55},
+  'QR008':{n:'Susu Ultra 250ml',p:8000,e:'🥛',s:40},
+  'QR009':{n:'Oreo Original',p:12000,e:'🍪',s:70},
+  'QR010':{n:'Sabun Lifebuoy',p:4500,e:'🧴',s:90},
+  'QR011':{n:'Minyak Goreng 1L',p:32000,e:'🫒',s:25},
+  'QR012':{n:'Gula Pasir 1kg',p:15000,e:'🍚',s:35},
+};
+function loadProduk(){
+  try{
+    const saved=localStorage.getItem('kasir_produk');
+    return saved?JSON.parse(saved):JSON.parse(JSON.stringify(DEFAULT_PRODUK));
+  }catch(e){return JSON.parse(JSON.stringify(DEFAULT_PRODUK));}
+}
+function saveProdukDB(){localStorage.setItem('kasir_produk',JSON.stringify(PRODUK));}
+let PRODUK = loadProduk();
+
+const EMOJIS=['💧','🍜','🍵','🍞','🍫','🧀','🥤','🥛','🍪','🧴','🫒','🍚','🌽','🍎','🍌','🥚','🧈','🍗','🍰','🍿','🍺','🧊','🥫','🧂','🥄','🍽️','🧹','🧺','💊','🪥','🧻','🕯️','🔋','📎','✂️','📏','🖊️','📝','📌','🔔','🎁','🎀','🧃','🫙','🛢️','🔑'];
+
+// ============================================================
+// AUDIO
+// ============================================================
+let actx;
+function ac(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function beep(f=880,d=0.08,t='square',v=0.25){
+  try{const c=ac(),o=c.createOscillator(),g=c.createGain();
+  o.connect(g);g.connect(c.destination);o.type=t;o.frequency.value=f;
+  g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);
+  o.start(c.currentTime);o.stop(c.currentTime+d);}catch(e){}
+}
+function beepOK(){beep(1200,.07,'square');setTimeout(()=>beep(1600,.08,'sine',.15),80);}
+function beepErr(){beep(300,.2,'sawtooth',.2);}
+function beepKembalian(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.12,'sine',.18),i*110));}
+
+// ============================================================
+// CLOCK & UTILS
+// ============================================================
+function tick(){
+  const n=new Date();
+  document.getElementById('clkTime').textContent=n.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('clkDate').textContent=n.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+setInterval(tick,1000);tick();
+
+function rp(n){return'Rp '+Number(n).toLocaleString('id-ID');}
+
+let tt;
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='show '+type;
+  clearTimeout(tt);tt=setTimeout(()=>t.className='',2400);
+}
+
+const debugEl=document.getElementById('scanDebug');
+let debugLines=[];
+function scanLog(msg){
+  const ts=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  debugLines.push('['+ts+'] '+msg);
+  if(debugLines.length>6)debugLines.shift();
+  debugEl.innerHTML=debugLines.join('<br>');
+  debugEl.classList.add('show');
+  console.log('[Scan]',msg);
+}
+
+// ============================================================
+// KATALOG
+// ============================================================
+function renderKat(){
+  const g=document.getElementById('katGrid');g.innerHTML='';
+  Object.entries(PRODUK).forEach(([code,p])=>{
+    const d=document.createElement('div');
+    d.className='kat-item';
+    d.innerHTML=`<div class="kat-emoji">${p.e}</div><div class="kat-name">${p.n}</div><div class="kat-price">${rp(p.p)}</div>`;
+    d.onclick=()=>{addCart(code);beep(700,.05,'sine');};
+    g.appendChild(d);
+  });
+}
+renderKat();
+
+// ============================================================
+// CAMERA & SCANNING (FIXED)
+// ============================================================
+let stream=null,scanning=false,rafId=null;
+let lastCode='',lastCodeTime=0;
+let frameCount=0,scanningActive=false;
+
+// BarcodeDetector native
+let nativeDetector=null;
+(function(){
+  if('BarcodeDetector' in window){
+    try{
+      nativeDetector=new BarcodeDetector({formats:['qr_code','code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','codabar']});
+      console.log('[Scan] BarcodeDetector native siap');
+    }catch(e){nativeDetector=null;}
+  }
+})();
+
+// ZXing fallback
+let zxingReader=null;
+(function(){
+  if(typeof ZXing==='undefined'){console.warn('[Scan] ZXing tidak ter-load');return;}
+  try{
+    const hints=new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.CODE_128,ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E,ZXing.BarcodeFormat.CODE_39,ZXing.BarcodeFormat.ITF]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+    zxingReader=new ZXing.BrowserMultiFormatReader(hints);
+    console.log('[Scan] ZXing siap');
+  }catch(e){zxingReader=null;}
+})();
+
+async function toggleCam(){
+  try{ac().resume();}catch(e){}
+  if(!scanning)await startCam();else stopCam();
+}
+
+async function startCam(){
+  const warn=document.getElementById('warn');
+  warn.className='warn';
+  debugLines=[];debugEl.classList.remove('show');
+
+  if(location.protocol==='file:'){
+    warn.className='warn show';
+    warn.innerHTML='⚠️ <b>Kamera tidak bisa dari file://</b><br><b>Solusi:</b> <code>python3 -m http.server 8080</code>';
+    return;
+  }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    warn.className='warn show';
+    warn.innerHTML='❌ Browser tidak mendukung kamera. Gunakan <b>Chrome/Edge</b> dengan HTTPS atau localhost.';
+    return;
+  }
+
+  let scanners=[];
+  if(nativeDetector)scanners.push('BarcodeDetector');
+  if(typeof jsQR!=='undefined')scanners.push('jsQR');
+  if(zxingReader)scanners.push('ZXing');
+  scanLog('Scanner: '+(scanners.length?scanners.join(', '):'TIDAK ADA'));
+
+  const tries=[
+    {video:{facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}}},
+    {video:{facingMode:{exact:'environment'},width:{ideal:640},height:{ideal:480}}},
+    {video:{facingMode:'environment'}},
+    {video:{facingMode:'user'}},
+    {video:true}
+  ];
+  let s=null;
+  for(const c of tries){
+    try{s=await navigator.mediaDevices.getUserMedia(c);console.log('[Scan] Kamera OK');break;}catch(e){continue;}
+  }
+  if(!s){
+    warn.className='warn show';
+    warn.innerHTML='❌ Kamera tidak bisa diakses. Cek izin kamera, lalu reload.';
+    return;
+  }
+
+  stream=s;frameCount=0;scanningActive=false;
+  const vid=document.getElementById('video');
+  vid.srcObject=s;vid.setAttribute('playsinline','');vid.setAttribute('muted','');vid.muted=true;
+  await new Promise(res=>{vid.onloadedmetadata=res;});
+  try{await vid.play();}catch(e){
+    warn.className='warn show';warn.innerHTML='❌ Video gagal: '+e.message;return;
+  }
+
+  const track=s.getVideoTracks()[0];
+  const settings=track.getSettings();
+  scanLog('Kamera: '+(settings.width||'?')+'x'+(settings.height||'?'));
+
+  scanning=true;
+  document.getElementById('vph').style.display='none';
+  document.getElementById('sf').classList.add('show');
+  document.getElementById('dot').classList.add('on');
+  document.getElementById('stTxt').textContent='Scanning...';
+  document.getElementById('btnCam').textContent='⏹ Matikan Kamera';
+  document.getElementById('btnCam').classList.add('stop');
+  loop();
+}
+
+function stopCam(){
+  scanning=false;
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  if(rafId)cancelAnimationFrame(rafId);
+  document.getElementById('video').srcObject=null;
+  document.getElementById('vph').style.display='flex';
+  document.getElementById('sf').classList.remove('show');
+  document.getElementById('dot').classList.remove('on');
+  document.getElementById('stTxt').textContent='Kamera mati';
+  document.getElementById('btnCam').textContent='📷 Aktifkan Kamera';
+  document.getElementById('btnCam').classList.remove('stop');
+  debugEl.classList.remove('show');
+}
+
+function loop(){
+  if(!scanning)return;
+  rafId=requestAnimationFrame(loop);
+  frameCount++;
+  if(frameCount%3!==0)return;
+  if(scanningActive)return;
+
+  const vid=document.getElementById('video'),cvs=document.getElementById('canvas');
+  if(vid.readyState<2||vid.videoWidth===0)return;
+
+  const maxW=640;
+  const scale=vid.videoWidth>maxW?maxW/vid.videoWidth:1;
+  cvs.width=Math.floor(vid.videoWidth*scale);
+  cvs.height=Math.floor(vid.videoHeight*scale);
+  const ctx=cvs.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(vid,0,0,cvs.width,cvs.height);
+  scanningActive=true;
+
+  if(nativeDetector){
+    nativeDetector.detect(cvs).then(barcodes=>{
+      if(barcodes.length>0)handleScanResult(barcodes[0].rawValue);
+      else scanWithFallback(ctx,cvs);
+      scanningActive=false;
+    }).catch(()=>{
+      scanWithFallback(ctx,cvs);scanningActive=false;
+    });
+  }else{
+    scanWithFallback(ctx,cvs);scanningActive=false;
+  }
+}
+
+function scanWithFallback(ctx,cvs){
+  let found=null;
+  if(typeof jsQR!=='undefined'){
+    try{
+      const img=ctx.getImageData(0,0,cvs.width,cvs.height);
+      const qr=jsQR(img.data,img.width,img.height,{inversionAttempts:'attemptBoth'});
+      if(qr&&qr.data)found=qr.data;
+    }catch(e){}
+  }
+  if(!found&&zxingReader){
+    try{
+      if(typeof ZXing.HTMLCanvasElementLuminanceSource!=='undefined'){
+        const ls=new ZXing.HTMLCanvasElementLuminanceSource(cvs);
+        const bb=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(ls));
+        const r=zxingReader.decode(bb);
+        if(r&&r.getText())found=r.getText();
+      }else{
+        const result=zxingReader.decode(document.getElementById('video'));
+        if(result&&result.getText())found=result.getText();
+      }
+    }catch(e){
+      if(e.name&&e.name!=='NotFoundException')console.warn('[Scan] ZXing:',e.name);
+    }
+  }
+  if(found)handleScanResult(found);
+}
+
+function handleScanResult(code){
+  const now=Date.now();
+  if(code!==lastCode||now-lastCodeTime>2500){
+    lastCode=code;lastCodeTime=now;
+    scanLog('Deteksi: '+code);
+    onScan(code);
+  }
+}
+
+// ============================================================
+// SCAN HANDLER
+// ============================================================
+let lastScanCode=null;
+function onScan(code){
+  const p=PRODUK[code];
+  if(p){
+    beepOK();lastScanCode=code;
+    const pf=document.getElementById('prodFound');
+    pf.classList.add('show');
+    document.getElementById('pfEmoji').textContent=p.e;
+    document.getElementById('pfName').textContent=p.n;
+    document.getElementById('pfCode').textContent='Kode: '+code;
+    document.getElementById('pfPrice').textContent=rp(p.p);
+    document.getElementById('pfStock').textContent='Stok: '+p.s+' pcs';
+    addCart(code);
+    toast('✅ '+p.e+' '+p.n,'ok');
+  }else{
+    beepErr();
+    toast('❌ Produk tidak ditemukan: '+code,'err');
+    scanLog('Tidak ditemukan: '+code);
+    lastScanCode=null;
+    document.getElementById('prodFound').classList.remove('show');
+  }
+}
+function addLastScan(){if(lastScanCode){addCart(lastScanCode);beep(700,.05,'sine');}}
+
+// ============================================================
+// CART
+// ============================================================
+let cart=[];
+function addCart(code){
+  const p=PRODUK[code];if(!p)return;
+  const ex=cart.find(i=>i.code===code);
+  if(ex)ex.qty++;else cart.push({code,...p,qty:1});
+  renderCart();
+}
+function chQty(code,d){
+  const i=cart.findIndex(x=>x.code===code);if(i<0)return;
+  cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);
+  renderCart();
+}
+function clearCart(){
+  cart=[];lastScanCode=null;
+  document.getElementById('prodFound').classList.remove('show');
+  renderCart();toast('🗑️ Keranjang dikosongkan');
+}
+function renderCart(){
+  const con=document.getElementById('cartItems');
+  const emp=document.getElementById('cartEmpty');
+  Array.from(con.querySelectorAll('.cart-row')).forEach(e=>e.remove());
+  if(cart.length===0){
+    emp.style.display='flex';
+    document.getElementById('badge').textContent='0';
+    document.getElementById('btnPay').disabled=true;
+  }else{
+    emp.style.display='none';
+    let qty=0;
+    cart.forEach(it=>{
+      qty+=it.qty;
+      const r=document.createElement('div');r.className='cart-row';
+      r.innerHTML=`<div class="cr-emoji">${it.e}</div>
+        <div class="cr-info">
+          <div class="cr-name">${it.n}</div>
+          <div class="cr-unit">${rp(it.p)}/pcs</div>
+          <div class="cr-sub">${rp(it.p*it.qty)}</div>
+        </div>
+        <div class="cr-qty">
+          <button class="qb" onclick="chQty('${it.code}',-1)">−</button>
+          <span class="qv">${it.qty}</span>
+          <button class="qb" onclick="chQty('${it.code}',1)">+</button>
+        </div>`;
+      con.appendChild(r);
+    });
+    document.getElementById('badge').textContent=qty;
+    document.getElementById('btnPay').disabled=false;
+  }
+  const sub=cart.reduce((s,i)=>s+i.p*i.qty,0);
+  const tax=Math.round(sub*.11);
+  document.getElementById('sub').textContent=rp(sub);
+  document.getElementById('tax').textContent=rp(tax);
+  document.getElementById('tot').textContent=rp(sub+tax);
+}
+
+// ============================================================
+// PAYMENT
+// ============================================================
+let payTot=0,cashRaw='';
+function openPay(){
+  const sub=cart.reduce((s,i)=>s+i.p*i.qty,0);
+  payTot=sub+Math.round(sub*.11);cashRaw='';
+  document.getElementById('cashIn').value='';
+  document.getElementById('kembalian').textContent='Rp 0';
+  document.getElementById('btnOk').disabled=true;
+  document.getElementById('payTotal').textContent=rp(payTot);
+  buildNumpad();
+  document.getElementById('payOverlay').classList.add('show');
+}
+function closePay(){document.getElementById('payOverlay').classList.remove('show');}
+function buildNumpad(){
+  const pad=document.getElementById('numpad');pad.innerHTML='';
+  ['1','2','3','4','5','6','7','8','9','⌫','0','00'].forEach(k=>{
+    const b=document.createElement('button');
+    b.className='np'+(k==='⌫'?' del':'');
+    b.textContent=k;b.onclick=()=>numIn(k);
+    pad.appendChild(b);
+  });
+}
+function numIn(k){
+  beep(700,.04,'sine');
+  if(k==='⌫')cashRaw=cashRaw.slice(0,-1);
+  else{if(cashRaw.length>=10)return;cashRaw+=k;}
+  const num=parseInt(cashRaw)||0;
+  document.getElementById('cashIn').value=num>0?rp(num):'';
+  const kem=num-payTot;
+  const kemEl=document.getElementById('kembalian');
+  kemEl.textContent=kem>=0?rp(kem):'−'+rp(Math.abs(kem));
+  kemEl.style.color=kem>=0?'var(--green)':'var(--red)';
+  document.getElementById('btnOk').disabled=kem<0||num===0;
+}
+function confirmPay(){
+  const cash=parseInt(cashRaw)||0;
+  const kem=cash-payTot;
+  closePay();beepKembalian();
+
+  // Kurangi stok
+  cart.forEach(item=>{
+    if(PRODUK[item.code]){
+      PRODUK[item.code].s=Math.max(0,PRODUK[item.code].s-item.qty);
+    }
+  });
+  saveProdukDB();
+
+  document.getElementById('sucChange').textContent=rp(kem);
+  document.getElementById('sucInfo').textContent=
+    new Date().toLocaleTimeString('id-ID')+' · '+cart.length+' jenis · '+
+    cart.reduce((s,i)=>s+i.qty,0)+' item';
+  document.getElementById('sucOverlay').classList.add('show');
+}
+function closeSuc(){
+  document.getElementById('sucOverlay').classList.remove('show');
+  clearCart();
+}
+
+// ============================================================
+// PAGE SWITCH
+// ============================================================
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById(name==='kasir'?'tabKasir':'tabProduk').classList.add('active');
+  if(name==='produk')renderProdukList();
+  if(name==='kasir')renderKat();
+}
+
+// ============================================================
+// PRODUK LIST
+// ============================================================
+function renderProdukList(){
+  const q=(document.getElementById('searchIn').value||'').toLowerCase();
+  const list=document.getElementById('produkList');list.innerHTML='';
+  const entries=Object.entries(PRODUK).filter(([code,p])=>p.n.toLowerCase().includes(q)||code.toLowerCase().includes(q));
+  if(entries.length===0){
+    list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;font-size:13px">Produk tidak ditemukan</div>';return;
+  }
+  entries.forEach(([code,p])=>{
+    const row=document.createElement('div');row.className='prow';
+    row.innerHTML=`
+      <div class="prow-emoji">${p.e}</div>
+      <div class="prow-info">
+        <div class="prow-name">${p.n}</div>
+        <div class="prow-meta">Kode: <strong style="font-family:monospace;color:var(--accent)">${code}</strong> · Stok: ${p.s} pcs</div>
+        <div class="prow-price">${rp(p.p)}</div>
+      </div>
+      <div class="prow-actions">
+        <button class="bicon" title="Barcode/QR" onclick="openCode('${code}')">🏷️</button>
+        <button class="bicon" title="Edit" onclick="openEdit('${code}')">✏️</button>
+        <button class="bicon" title="Hapus" onclick="openDel('${code}')">🗑️</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+// ============================================================
+// EDIT PRODUK
+// ============================================================
+let editingCode=null,selEmoji='📦';
+function openEdit(code){
+  editingCode=code;
+  const isNew=!code;
+  document.getElementById('editTitle').textContent=isNew?'➕ Produk Baru':'✏️ Edit Produk';
+  if(isNew){
+    document.getElementById('fName').value='';
+    document.getElementById('fCode').value='QR'+String(Date.now()).slice(-4);
+    document.getElementById('fPrice').value='';
+    document.getElementById('fStock').value='0';selEmoji='📦';
+  }else{
+    const p=PRODUK[code];
+    document.getElementById('fName').value=p.n;
+    document.getElementById('fCode').value=code;
+    document.getElementById('fPrice').value=p.p;
+    document.getElementById('fStock').value=p.s;selEmoji=p.e;
+  }
+  const pick=document.getElementById('emojiPick');pick.innerHTML='';
+  EMOJIS.forEach(em=>{
+    const b=document.createElement('button');
+    b.className='epbtn'+(em===selEmoji?' sel':'');
+    b.textContent=em;
+    b.onclick=()=>{selEmoji=em;pick.querySelectorAll('.epbtn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');};
+    pick.appendChild(b);
+  });
+  document.getElementById('editOverlay').classList.add('show');
+}
+function closeEdit(){document.getElementById('editOverlay').classList.remove('show');}
+function saveProduk(){
+  const n=document.getElementById('fName').value.trim();
+  const code=document.getElementById('fCode').value.trim().toUpperCase();
+  const p=parseInt(document.getElementById('fPrice').value)||0;
+  const s=parseInt(document.getElementById('fStock').value)||0;
+  if(!n||!code){toast('❌ Nama dan kode wajib diisi','err');return;}
+  if(code!==editingCode&&PRODUK[code]){toast('❌ Kode '+code+' sudah dipakai','err');return;}
+  if(editingCode&&editingCode!==code)delete PRODUK[editingCode];
+  PRODUK[code]={n,p,e:selEmoji,s};
+  saveProdukDB();
+  closeEdit();renderProdukList();renderKat();
+  toast('✅ Produk disimpan: '+n,'ok');
+}
+
+// ============================================================
+// DELETE PRODUK
+// ============================================================
+let deletingCode=null;
+function openDel(code){
+  deletingCode=code;
+  document.getElementById('delMsg').textContent=`Hapus "${PRODUK[code].n}" (${code})? Tidak bisa dibatalkan.`;
+  document.getElementById('delOverlay').classList.add('show');
+}
+function closeDel(){document.getElementById('delOverlay').classList.remove('show');}
+function confirmDel(){
+  if(!deletingCode)return;
+  const n=PRODUK[deletingCode].n;
+  delete PRODUK[deletingCode];
+  saveProdukDB();closeDel();renderProdukList();renderKat();
+  toast('🗑️ '+n+' dihapus');
+}
+
+// ============================================================
+// BARCODE/QR CODE MODAL & PRINT (FIXED MULTI-HALAMAN)
+// ============================================================
+let currentCodeType='barcode',currentCode=null;
+function openCode(code){
+  currentCode=code;
+  const p=PRODUK[code];
+  document.getElementById('cpiEmoji').textContent=p.e;
+  document.getElementById('cpiName').textContent=p.n;
+  document.getElementById('cpiPrice').textContent=rp(p.p);
+  document.getElementById('codeTextDisplay').textContent=code;
+  currentCodeType='barcode';
+  document.getElementById('cttBarcode').classList.add('active');
+  document.getElementById('cttQR').classList.remove('active');
+  renderCodeCanvas();
+  document.getElementById('codeOverlay').classList.add('show');
+}
+function closeCode(){
+  document.getElementById('codeOverlay').classList.remove('show');
+  document.getElementById('codeCanvasWrap').innerHTML='';
+}
+function setCodeType(type){
+  currentCodeType=type;
+  document.getElementById('cttBarcode').classList.toggle('active',type==='barcode');
+  document.getElementById('cttQR').classList.toggle('active',type==='qr');
+  renderCodeCanvas();
+}
+function renderCodeCanvas(){
+  const wrap=document.getElementById('codeCanvasWrap');wrap.innerHTML='';
+  if(currentCodeType==='barcode'){
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    wrap.appendChild(svg);
+    try{JsBarcode(svg,currentCode,{format:'CODE128',width:2.4,height:80,displayValue:false,margin:8});}
+    catch(e){wrap.innerHTML='<div style="font-size:12px;color:red">Kode tidak valid</div>';}
+  }else{
+    const div=document.createElement('div');wrap.appendChild(div);
+    try{new QRCode(div,{text:currentCode,width:160,height:160,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});}
+    catch(e){wrap.innerHTML='<div style="font-size:12px;color:red">QR gagal</div>';}
+  }
+}
+
+function getCodeImgHTML(code){
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  try{JsBarcode(svg,code,{format:'CODE128',width:1.8,height:50,displayValue:false,margin:4});svg.style.width='40mm';svg.style.height='auto';return svg.outerHTML;}
+  catch(e){return '<div style="font-size:8pt;color:red">invalid</div>';}
+}
+
+function printSingleCode(){
+  const p=PRODUK[currentCode];
+  const printArea=document.getElementById('printArea');
+  const codeHTML=getCodeImgHTML(currentCode);
+  let cards='';
+  for(let i=0;i<6;i++){
+    cards+=`<div class="pcard">
+      <div style="font-size:20pt">${p.e}</div>
+      ${codeHTML}
+      <div class="pcard-name">${p.n}</div>
+      <div class="pcard-code">${currentCode}</div>
+      <div class="pcard-price">${rp(p.p)}</div>
+    </div>`;
+  }
+  printArea.innerHTML=cards;
+  printArea.style.display='flex';
+  printArea.style.position='static';
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{printArea.style.display='none';},500);
+  },300);
+}
+
+function openPrintAll(){
+  if(Object.keys(PRODUK).length===0){toast('❌ Belum ada produk','err');return;}
+  const printArea=document.getElementById('printArea');
+  let cards='';
+  Object.entries(PRODUK).forEach(([code,p])=>{
+    cards+=`<div class="pcard">
+      <div style="font-size:20pt">${p.e}</div>
+      ${getCodeImgHTML(code)}
+      <div class="pcard-name">${p.n}</div>
+      <div class="pcard-code">${code}</div>
+      <div class="pcard-price">${rp(p.p)}</div>
+    </div>`;
+  });
+  printArea.innerHTML=cards;
+  printArea.style.display='flex';
+  printArea.style.position='static';
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{printArea.style.display='none';},500);
+  },300);
+}
+
+// ============================================================
+// KEYBOARD SCANNER (barcode scanner fisik)
+// ============================================================
+let kbuf='',ktimer;
+document.addEventListener('keydown',e=>{
+  if(document.querySelector('.overlay.show'))return;
+  if(e.key==='Enter'&&kbuf.length>2){onScan(kbuf);kbuf='';}
+  else if(e.key.length===1){kbuf+=e.key;clearTimeout(ktimer);ktimer=setTimeout(()=>{kbuf='';},400);}
+});
+</script>
+</body>
+</html>
